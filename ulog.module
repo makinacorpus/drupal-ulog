@@ -1,0 +1,14 @@
+<?php
+/**
+ * @file
+ * Why won't Drupal log correctly errors?
+ */
+
+/**
+ * Implements hook_boot().
+ */
+function ulog_boot() {
+  if (!defined('LO_ERROR_LOADED')) {
+    require_once __DIR__ . '/ulog.error.inc';
+  }
+}
