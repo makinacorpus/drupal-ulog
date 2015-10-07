@@ -26,7 +26,7 @@ if (!defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {
 set_error_handler(function ($error_level, $message, $filename, $line, $context) {
   $reporting = error_reporting();
   // Error reporting is set to 0 when the call was prefixed by @
-  if ($reporting !== 0 && (1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
+  if ($reporting !== 0 && (isset($GLOBALS['user']) && 1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
     require_once DRUPAL_ROOT . '/includes/errors.inc';
     $types = drupal_error_levels();
     list($severity_msg, $severity_level) = $types[$error_level];
