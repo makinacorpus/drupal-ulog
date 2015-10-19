@@ -68,14 +68,13 @@ set_error_handler(function ($error_level, $message, $filename, $line, $context) 
  */
 set_exception_handler(function (Exception $e) {
   require_once DRUPAL_ROOT . '/includes/errors.inc';
-  $caller = reset($e);
   try {
     _drupal_log_error(array(
       '%type' => get_class($e),
       '!message' => nl2br(check_plain($e->getMessage()) . "\n" . $e->getTraceAsString()),
-      '%function' => $caller['function'],
-      '%file' => $caller['file'],
-      '%line' => $caller['line'],
+      '%function' => $e->getCode(),
+      '%file' => $e->getFile(),
+      '%line' => $e->getLine(),
       'severity_level' => WATCHDOG_ERROR,
     ), true);
   }
