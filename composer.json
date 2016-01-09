@@ -1,7 +1,7 @@
 {
     "name" : "makinacorpus/drupal-ulog",
     "type" : "drupal-module",
-    "description" : " Minimalistic module that replaces Drupal 7 error handler to provide full stack trace for errors",
+    "description" : "Minimalistic module that replaces Drupal 7 error handler to provide full stack trace for errors",
     "homepage" : "http://github.com/makinacorpus/drupal-ulog",
     "license" : "GPL-2",
     "authors" : [{
@@ -12,5 +12,5 @@
             "homepage" : "http://makina-corpus.com"
         }
     ],
-    "minimum-stability" : "dev",
+    "minimum-stability" : "dev"
 }
