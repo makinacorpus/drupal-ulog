@@ -20,47 +20,6 @@ if (!defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {
 }
 
 /**
- * @see _drupal_error_handler().
- * @see _drupal_error_handler_real().
- */
-set_error_handler(function ($error_level, $message, $filename, $line, $context) {
-  $reporting = error_reporting();
-  // Error reporting is set to 0 when the call was prefixed by @
-  if ($reporting !== 0 && (isset($GLOBALS['user']) && 1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
-    require_once DRUPAL_ROOT . '/includes/errors.inc';
-    $types = drupal_error_levels();
-    list($severity_msg, $severity_level) = $types[$error_level];
-
-    $i = 0;
-    $dtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-    $strace = array();
-    //array_shift($dtrace); // This closure.
-    foreach ($dtrace as $caller) {
-      if (isset($caller['file'])) {
-        $strace[$i] = "#$i {$caller['file']}({$caller['line']}): {$caller['function']}()";
-      } else {
-        $strace[$i] = "#$i [internal function]: {$caller['function']}()";
-      }
-      ++$i;
-    }
-
-    if (!function_exists('filter_xss_admin')) {
-      require_once DRUPAL_ROOT . '/includes/common.inc';
-    }
-
-    // We treat recoverable errors as fatal.
-    _ulog_drupal_log_error([[
-      '%type'           => isset($types[$error_level]) ? $severity_msg : 'Unknown error',
-      '!message'        => nl2br(filter_xss_admin($message) . "\n" . implode("\n", $strace)),
-      '%function'       => $caller['function'],
-      '%file'           => empty($caller['file']) ? '' : $caller['file'],
-      '%line'           => empty($caller['line']) ? '' : $caller['line'],
-      'severity_level'  => $severity_level,
-    ]], $error_level == E_RECOVERABLE_ERROR);
-  }
-});
-
-/**
  * Logs a PHP error or exception and displays an error page in fatal cases.
  *
  * @param $errors
@@ -154,6 +113,50 @@ function _ulog_drupal_log_error($errors, $fatal = FALSE) {
 }
 
 /**
+ * @see _drupal_error_handler().
+ * @see _drupal_error_handler_real().
+ */
+function _ulog_error_handler($error_level, $message, $filename, $line, $context) {
+  $reporting = error_reporting();
+  // Error reporting is set to 0 when the call was prefixed by @
+  if ($reporting !== 0 && (isset($GLOBALS['user']) && 1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
+    require_once DRUPAL_ROOT . '/includes/errors.inc';
+    $types = drupal_error_levels();
+    list($severity_msg, $severity_level) = $types[$error_level];
+
+    $i = 0;
+    $dtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    $strace = array();
+    //array_shift($dtrace); // This closure.
+    foreach ($dtrace as $caller) {
+      if (isset($caller['file'])) {
+        $strace[$i] = "#$i {$caller['file']}({$caller['line']}): {$caller['function']}()";
+      } else {
+        $strace[$i] = "#$i [internal function]: {$caller['function']}()";
+      }
+      ++$i;
+    }
+
+    if (!function_exists('filter_xss_admin')) {
+      require_once DRUPAL_ROOT . '/includes/common.inc';
+    }
+
+    // We treat recoverable errors as fatal.
+    _ulog_drupal_log_error([[
+      '%type'           => isset($types[$error_level]) ? $severity_msg : 'Unknown error',
+      '!message'        => nl2br(filter_xss_admin($message) . "\n" . implode("\n", $strace)),
+      '%function'       => $caller['function'],
+      '%file'           => empty($caller['file']) ? '' : $caller['file'],
+      '%line'           => empty($caller['line']) ? '' : $caller['line'],
+      'severity_level'  => $severity_level,
+    ]], $error_level == E_RECOVERABLE_ERROR || $error_level == E_ERROR || $error_level == E_COMPILE_ERROR);
+  }
+}
+
+// Override Drupal error handler.
+set_error_handler('_ulog_error_handler');
+
+/**
  * @see _drupal_exception_handler().
  * @see _drupal_exception_handler_real().
  */
@@ -181,5 +184,13 @@ set_exception_handler(function (Exception $e) {
       print '<h2>Original</h2><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre>';
       print '<h2>Additional</h2><p>' . $e2->getMessage() . '</p><pre>' . $e2->getTraceAsString() . '</pre>';
     }
+  }
+});
+
+// https://stackoverflow.com/questions/277224/how-do-i-catch-a-php-fatal-error
+register_shutdown_function(function () {
+  $error = error_get_last();
+  if ($error && E_ERROR === $error['type']) {
+    _ulog_error_handler($error['type'], $error['message'], $error['file'], $error['line'], null);
   }
 });
