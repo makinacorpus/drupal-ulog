@@ -116,7 +116,7 @@ function _ulog_drupal_log_error($errors, $fatal = FALSE) {
  * @see _drupal_error_handler().
  * @see _drupal_error_handler_real().
  */
-function _ulog_error_handler($error_level, $message, $filename, $line, $context) {
+function _ulog_error_handler($error_level, $message, $filename, $line, $context, $getTrace = true) {
   $reporting = error_reporting();
   // Error reporting is set to 0 when the call was prefixed by @
   if ($reporting !== 0 && (isset($GLOBALS['user']) && 1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
@@ -124,17 +124,21 @@ function _ulog_error_handler($error_level, $message, $filename, $line, $context)
     $types = drupal_error_levels();
     list($severity_msg, $severity_level) = $types[$error_level];
 
-    $i = 0;
-    $dtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-    $strace = array();
-    //array_shift($dtrace); // This closure.
-    foreach ($dtrace as $caller) {
-      if (isset($caller['file'])) {
-        $strace[$i] = "#$i {$caller['file']}({$caller['line']}): {$caller['function']}()";
-      } else {
-        $strace[$i] = "#$i [internal function]: {$caller['function']}()";
+    if ($getTrace) {
+      $i = 0;
+      $dtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+      $strace = [];
+      //array_shift($dtrace); // This closure.
+      foreach ($dtrace as $caller) {
+        if (isset($caller['file'])) {
+          $strace[$i] = "#$i {$caller['file']}({$caller['line']}): {$caller['function']}()";
+        } else {
+          $strace[$i] = "#$i [internal function]: {$caller['function']}()";
+        }
+        ++$i;
       }
-      ++$i;
+    } else {
+      $strace = ["#0 {$filename}($line)"];
     }
 
     if (!function_exists('filter_xss_admin')) {
@@ -144,7 +148,7 @@ function _ulog_error_handler($error_level, $message, $filename, $line, $context)
     // We treat recoverable errors as fatal.
     _ulog_drupal_log_error([[
       '%type'           => isset($types[$error_level]) ? $severity_msg : 'Unknown error',
-      '!message'        => nl2br(filter_xss_admin($message) . "\n" . implode("\n", $strace)),
+      '!message'        => '<strong>' . nl2br(filter_xss_admin($message) . "</strong>\n" . implode("\n", $strace)),
       '%function'       => $caller['function'],
       '%file'           => empty($caller['file']) ? '' : $caller['file'],
       '%line'           => empty($caller['line']) ? '' : $caller['line'],
@@ -191,6 +195,6 @@ set_exception_handler(function (Exception $e) {
 register_shutdown_function(function () {
   $error = error_get_last();
   if ($error && E_ERROR === $error['type']) {
-    _ulog_error_handler($error['type'], $error['message'], $error['file'], $error['line'], null);
+    _ulog_error_handler($error['type'], $error['message'], $error['file'], $error['line'], null, false);
   }
 });
