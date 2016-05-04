@@ -168,16 +168,17 @@ set_exception_handler(function (Exception $e) {
   require_once DRUPAL_ROOT . '/includes/errors.inc';
   try {
     $errors = [];
+    $current = $e;
     do {
       $errors[] = [
         '%type'           => get_class($e),
-        '!message'        => '<strong>' . nl2br(check_plain($e->getMessage()) . "</strong>\n" . $e->getTraceAsString()),
-        '%function'       => $e->getCode(),
-        '%file'           => $e->getFile(),
-        '%line'           => $e->getLine(),
+        '!message'        => '<strong>' . nl2br(check_plain($current->getMessage()) . "</strong>\n" . $current->getTraceAsString()),
+        '%function'       => $current->getCode(),
+        '%file'           => $current->getFile(),
+        '%line'           => $current->getLine(),
         'severity_level'  => WATCHDOG_CRITICAL,
       ];
-    } while ($e = $e->getPrevious());
+    } while ($current = $current->getPrevious());
     _ulog_drupal_log_error($errors, true);
   }
   catch (Exception $e2) {
