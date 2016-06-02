@@ -19,6 +19,10 @@ if (!defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {
   define('DEBUG_BACKTRACE_IGNORE_ARGS', false);
 }
 
+if (!class_exists('\Error')) {
+  class Error extends Exception {};
+}
+
 /**
  * Logs a PHP error or exception and displays an error page in fatal cases.
  *
@@ -164,7 +168,7 @@ set_error_handler('_ulog_error_handler');
  * @see _drupal_exception_handler().
  * @see _drupal_exception_handler_real().
  */
-set_exception_handler(function (Exception $e) {
+set_exception_handler(function (Error $e) {
   require_once DRUPAL_ROOT . '/includes/errors.inc';
   try {
     $errors = [];
@@ -181,7 +185,7 @@ set_exception_handler(function (Exception $e) {
     } while ($current = $current->getPrevious());
     _ulog_drupal_log_error($errors, true);
   }
-  catch (Exception $e2) {
+  catch (Error $e2) {
     // Another uncaught exception was thrown while handling the first one.
     // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
     if (error_displayable()) {
