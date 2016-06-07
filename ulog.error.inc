@@ -19,10 +19,6 @@ if (!defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {
   define('DEBUG_BACKTRACE_IGNORE_ARGS', false);
 }
 
-if (!class_exists('\Error')) {
-  class Error extends Exception {};
-}
-
 /**
  * Logs a PHP error or exception and displays an error page in fatal cases.
  *
@@ -168,33 +164,63 @@ set_error_handler('_ulog_error_handler');
  * @see _drupal_exception_handler().
  * @see _drupal_exception_handler_real().
  */
-set_exception_handler(function (Error $e) {
-  require_once DRUPAL_ROOT . '/includes/errors.inc';
-  try {
-    $errors = [];
-    $current = $e;
-    do {
-      $errors[] = [
-        '%type'           => get_class($e),
-        '!message'        => '<strong>' . nl2br(check_plain($current->getMessage()) . "</strong>\n" . $current->getTraceAsString()),
-        '%function'       => $current->getCode(),
-        '%file'           => $current->getFile(),
-        '%line'           => $current->getLine(),
-        'severity_level'  => WATCHDOG_CRITICAL,
-      ];
-    } while ($current = $current->getPrevious());
-    _ulog_drupal_log_error($errors, true);
-  }
-  catch (Error $e2) {
-    // Another uncaught exception was thrown while handling the first one.
-    // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
-    if (error_displayable()) {
-      print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
-      print '<h2>Original</h2><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre>';
-      print '<h2>Additional</h2><p>' . $e2->getMessage() . '</p><pre>' . $e2->getTraceAsString() . '</pre>';
+if (class_exists('\Error')) {
+  set_exception_handler(function (Error $e) {
+    require_once DRUPAL_ROOT . '/includes/errors.inc';
+    try {
+      $errors = [];
+      $current = $e;
+      do {
+        $errors[] = [
+          '%type'           => get_class($e),
+          '!message'        => '<strong>' . nl2br(check_plain($current->getMessage()) . "</strong>\n" . $current->getTraceAsString()),
+          '%function'       => $current->getCode(),
+          '%file'           => $current->getFile(),
+          '%line'           => $current->getLine(),
+          'severity_level'  => WATCHDOG_CRITICAL,
+        ];
+      } while ($current = $current->getPrevious());
+      _ulog_drupal_log_error($errors, true);
     }
-  }
-});
+    catch (Error $e2) {
+      // Another uncaught exception was thrown while handling the first one.
+      // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
+      if (error_displayable()) {
+        print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
+        print '<h2>Original</h2><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre>';
+        print '<h2>Additional</h2><p>' . $e2->getMessage() . '</p><pre>' . $e2->getTraceAsString() . '</pre>';
+      }
+    }
+  });
+} else {
+  set_exception_handler(function (Exception $e) {
+    require_once DRUPAL_ROOT . '/includes/errors.inc';
+    try {
+      $errors = [];
+      $current = $e;
+      do {
+        $errors[] = [
+            '%type'           => get_class($e),
+            '!message'        => '<strong>' . nl2br(check_plain($current->getMessage()) . "</strong>\n" . $current->getTraceAsString()),
+            '%function'       => $current->getCode(),
+            '%file'           => $current->getFile(),
+            '%line'           => $current->getLine(),
+            'severity_level'  => WATCHDOG_CRITICAL,
+        ];
+      } while ($current = $current->getPrevious());
+      _ulog_drupal_log_error($errors, true);
+    }
+    catch (Error $e2) {
+      // Another uncaught exception was thrown while handling the first one.
+      // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
+      if (error_displayable()) {
+        print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
+        print '<h2>Original</h2><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre>';
+        print '<h2>Additional</h2><p>' . $e2->getMessage() . '</p><pre>' . $e2->getTraceAsString() . '</pre>';
+      }
+    }
+  });
+}
 
 // https://stackoverflow.com/questions/277224/how-do-i-catch-a-php-fatal-error
 register_shutdown_function(function () {
