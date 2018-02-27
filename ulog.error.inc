@@ -116,7 +116,7 @@ function _ulog_drupal_log_error($errors, $fatal = FALSE) {
  * @see _drupal_error_handler().
  * @see _drupal_error_handler_real().
  */
-function _ulog_error_handler($error_level, $message, $filename, $line, $context, $getTrace = true) {
+function _ulog_error_handler($error_level, $message, $filename = null, $line = null, $context = null, $getTrace = true) {
   $reporting = error_reporting();
   // Error reporting is set to 0 when the call was prefixed by @
   if ($reporting !== 0 && (isset($GLOBALS['user']) && is_object($GLOBALS['user']) && 1 == $GLOBALS['user']->uid || ($error_level & $reporting))) {
